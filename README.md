@@ -49,3 +49,84 @@ class TestConfig:
 ```
 
 Make sure to update these parameters according to your specific requirements before running the tests.
+
+## GitHub Action
+
+This repository is also available as a GitHub Action that you can use in your CI/CD workflows.
+
+### Usage
+
+Add the following to your GitHub workflow file:
+
+```yaml
+jobs:
+  test-external-points-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run External Points API Tests
+        uses: symbioticfi/external-points-api-test@v1
+        with:
+          api_base_url: "https://your-api-url.com/external/api/"
+          points_type: "network"
+          supported_receiver_types: "staker,operator"
+          receiver_addresses: >-
+            {
+              "staker": "0xa5188f25C9F02870E78F7fAF5cf4E3D2ff307eaa",
+              "operator": "0xb6188f25C9F02870E78F7fAF5cf4E3D2ff307bbc"
+            }
+          block_number: 21872694
+```
+
+### Inputs
+
+| Input | Description | Required | Default |
+|-------|-------------|----------|---------|
+| `api_base_url` | The base URL for the External Points API | Yes | - |
+| `points_type` | The type of points to test (network or vault) | No | `network` |
+| `supported_receiver_types` | Comma-separated list of supported receiver types | No | `staker,operator` |
+| `receiver_addresses` | JSON string of receiver addresses | Yes | - |
+| `block_number` | The block number to use for tests | Yes | - |
+
+### Example with GitHub Secrets
+
+```yaml
+jobs:
+  test-external-points-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run External Points API Tests
+        uses: symbioticfi/external-points-api-test@main
+        with:
+          api_base_url: ${{ secrets.EXTERNAL_API_BASE_URL }}
+          points_type: "network"
+          supported_receiver_types: "staker,operator"
+          receiver_addresses: >-
+            {
+              "staker": "${{ secrets.STAKER_ADDRESS }}",
+              "operator": "${{ secrets.OPERATOR_ADDRESS }}"
+            }
+          block_number: ${{ secrets.TEST_BLOCK_NUMBER }}
+```
+
+### Scheduled Testing
+
+You can also set up scheduled testing to regularly verify your API:
+
+```yaml
+name: External Points API Integration Test
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  test-external-points-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run External Points API Tests
+        uses: symbioticfi/external-points-api-test@main
+        with:
+          api_base_url: ${{ secrets.EXTERNAL_API_BASE_URL }}
+          # ... other inputs
+```

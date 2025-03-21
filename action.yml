@@ -1,0 +1,84 @@
+name: 'External Points API Test'
+description: 'Run tests against External Points API'
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  api_base_url:
+    description: 'The base URL for the External Points API'
+    required: true
+  points_type:
+    description: 'The type of points to test (network or vault)'
+    required: false
+    default: 'network'
+  supported_receiver_types:
+    description: 'Comma-separated list of supported receiver types (e.g., "staker,operator")'
+    required: false
+    default: 'staker,operator'
+  receiver_addresses:
+    description: 'JSON string of receiver addresses (e.g., {"staker":"0x123...", "operator":"0x456..."})'
+    required: true
+  block_number:
+    description: 'The block number to use for tests'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        repository: 'symbioticfi/external-points-api-test'
+        path: 'external-points-api-test'
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      shell: bash
+      working-directory: external-points-api-test
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create config file
+      shell: bash
+      working-directory: external-points-api-test
+      run: |
+        # Write receiver addresses to a separate file to avoid escaping issues
+        echo '${{ inputs.receiver_addresses }}' > receiver_addresses.json
+        
+        python -c "
+        import json
+        import os
+        
+        # Parse inputs
+        api_base_url = '${{ inputs.api_base_url }}'
+        points_type = '${{ inputs.points_type }}'
+        supported_types = '${{ inputs.supported_receiver_types }}'.replace(' ', '').split(',')
+        block_number = '${{ inputs.block_number }}'
+        
+        # Load receiver addresses from file to avoid escaping issues
+        with open('receiver_addresses.json', 'r') as f:
+            receiver_addresses = json.loads(f.read())
+        
+        # Create config file
+        with open('config_data.py', 'w') as f:
+            f.write('class TestConfig:\\n')
+            f.write(f'    API_BASE_URL = \"{api_base_url}\"\\n')
+            f.write(f'    POINTS_TYPE = \"{points_type}\"\\n')
+            f.write(f'    SUPPORTED_RECEIVER_TYPES = {supported_types}\\n')
+            f.write(f'    RECEIVER_ADDRESSES = {receiver_addresses}\\n')
+            f.write(f'    BLOCK_NUMBER = {block_number}\\n')
+        "
+        
+        cat config_data.py
+        
+    - name: Run tests
+      shell: bash
+      working-directory: external-points-api-test
+      run: |
+        python -m pytest -v 

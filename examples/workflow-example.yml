@@ -1,0 +1,43 @@
+name: External Points API Integration Test
+
+on:
+  # Run on schedule (once a day at 00:00 UTC)
+  schedule:
+    - cron: '0 0 * * *'
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Custom API Base URL to test'
+        required: false
+      block_number:
+        description: 'Custom block number to test'
+        required: false
+
+jobs:
+  test-external-points-api:
+    runs-on: ubuntu-latest
+    steps:
+      # Example of how to create the JSON properly
+      - name: Prepare receiver addresses
+        id: prepare-addresses
+        run: |
+          # Create the JSON object with proper escaping
+          # This approach helps when you need to build JSON dynamically
+          echo '::set-output name=receiver_json::{
+            "staker": "${{ secrets.STAKER_ADDRESS }}",
+            "operator": "${{ secrets.OPERATOR_ADDRESS }}"
+          }'
+      
+      - name: Run External Points API Tests
+        uses: symbioticfi/external-points-api-test@main
+        with:
+          api_base_url: ${{ github.event.inputs.api_base_url || secrets.EXTERNAL_API_BASE_URL }}
+          points_type: 'network'
+          supported_receiver_types: 'staker,operator'
+          # Option 1: Using set-output from previous step
+          receiver_addresses: ${{ steps.prepare-addresses.outputs.receiver_json }}
+          # Option 2: Direct inline JSON (be careful with escaping)
+          # receiver_addresses: '{"staker":"${{ secrets.STAKER_ADDRESS }}","operator":"${{ secrets.OPERATOR_ADDRESS }}"}'
+          block_number: ${{ github.event.inputs.block_number || secrets.TEST_BLOCK_NUMBER }} 
