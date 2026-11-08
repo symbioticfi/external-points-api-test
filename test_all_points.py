@@ -45,17 +45,25 @@ class TestAllPoints:
         assert third_page.status_code == 200
 
 
-        assert len({(item["receiver_address"], item["points"], item["vault_address"]) for item in first_page_data} & {
-            (item["receiver_address"], item["points"], item["vault_address"]) for item in
-            second_page_data}) == 2, "Offset or limit not working correctly. Should have 2 common addresses and points"
+        def record_set(page):
+            return {
+                (
+                    item["receiver_type"],
+                    item["receiver_address"],
+                    item["points"],
+                    item["vault_address"],
+                    item["network_address"] if TestConfig.POINTS_TYPE == "network" else None,
+                )
+                for item in page
+            }
 
-        assert len({(item["receiver_address"], item["points"], item["vault_address"]) for item in second_page_data} & {
-            (item["receiver_address"], item["points"], item["vault_address"]) for item in
-            third_page_data}) == 2, "Offset or limit not working correctly. should have 2 common addresses"
+        first_records = record_set(first_page_data)
+        second_records = record_set(second_page_data)
+        third_records = record_set(third_page_data)
 
-        assert len({(item["receiver_address"], item["points"], item["vault_address"]) for item in first_page_data} & {
-            (item["receiver_address"], item["points"], item["vault_address"]) for item in
-            third_page_data}) == 0, "Offset or limit not working correctly. should have 0 common addresses"
+        assert len(first_records & second_records) == 2, "Offset or limit not working correctly. Should have 2 common records"
+        assert len(second_records & third_records) == 2, "Offset or limit not working correctly. should have 2 common records"
+        assert len(first_records & third_records) == 0, "Offset or limit not working correctly. should have 0 common records"
 
     @pytest.mark.parametrize("receiver_type", ["staker", "network", "operator"])
     def test_get_all_points_with_receiver_type(self, api_client, receiver_type):

@@ -24,6 +24,17 @@ To run the tests, follow these steps:
    pytest -v
    ```
 
+The pagination check compares complete records, including `receiver_type` and,
+for network points, `network_address`. Records with equal points, receiver
+addresses, and vault addresses can still be distinct.
+
+To run the pagination regression tests offline, without contacting the configured
+partner API:
+
+```sh
+python -m pytest -q tests/test_pagination_identity.py
+```
+
 #### Configuring Test Parameters
 
 To configure the test parameters, you need to modify the `TestConfig` class in the `config_data.py` file. Here are the parameters you need to set:
